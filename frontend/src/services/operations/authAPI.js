@@ -50,70 +50,101 @@ export function signUp(accountType, firstName, lastName, email, password, confir
 // ================ Login ================
 export function login(email, password, navigate, accountType) {
   return async (dispatch) => {
-
     const toastId = toast.loading("Logging in...");
     dispatch(setLoading(true));
 
     try {
-      const response = await apiConnector("POST", LOGIN_API, {
+      console.log("Logging in with credentials:", { email, accountType });
+      
+      // Handle potential network errors with a timeout
+      const loginPromise = apiConnector("POST", LOGIN_API, {
         email,
         password,
-        accountType,  // Send the selected account type to the backend
-      })
+        accountType,
+      });
+      
+      // Add a timeout to handle potential network issues
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out. Please check your network connection.")), 10000);
+      });
+      
+      // Race between the actual request and the timeout
+      const response = await Promise.race([loginPromise, timeoutPromise]);
 
       console.log("LOGIN API RESPONSE............", response);
 
-      if (!response.data.success) {
-        throw new Error(response.data.message)
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || "Login failed. Please try again.");
       }
 
-      toast.success("Login Successful")
-      dispatch(setToken(response.data.token))
-
+      toast.success("Login Successful");
+      
+      // Store token as a plain string (not JSON stringified)
+      const token = response.data.token;
+      dispatch(setToken(token));
+      localStorage.setItem("token", token);
+      console.log("Token stored in localStorage:", token);
+      
+      // Process user data
       const userImage = response.data?.user?.image
         ? response.data.user.image
-        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`
-
-      dispatch(setUser({ ...response.data.user, image: userImage }));
+        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
       
-      localStorage.setItem("token", JSON.stringify(response.data?.token));
-      localStorage.setItem("user", JSON.stringify({ ...response.data.user, image: userImage }));
+      const userData = { ...response.data.user, image: userImage };
+      dispatch(setUser(userData));
+      localStorage.setItem("user", JSON.stringify(userData));
       
       // Store the selected account type for sidebar display
       localStorage.setItem("selectedAccountType", accountType);
-
-      console.log("Selected account type for navigation:", accountType);
-      console.log("User's actual account type from DB:", response.data.user.accountType);
+      console.log("Selected account type:", accountType);
       
-      // FORCE navigate based on the selected account type
-      if (accountType === "Instructor") {
-        console.log("Navigating to instructor dashboard with delay to prevent interference");
-        
-        // First navigate immediately
-        navigate("/dashboard/instructor");
-        
-        // Then set a timeout to navigate again after a short delay
-        // This helps ensure no other component interferes with navigation
+      // Get the actual user account type from the user data
+      const userActualType = userData.accountType;
+      console.log("User's actual account type from DB:", userActualType);
+      
+      // Validate that the selected account type matches the user's actual type
+      // If they don't match, default to the user's actual type
+      const validatedAccountType = (accountType === userActualType) ? 
+        accountType : userActualType;
+      
+      console.log("Using account type for navigation:", validatedAccountType);
+      
+      // Navigate based on validated account type
+      if (validatedAccountType === "Instructor") {
+        console.log("Navigating to instructor dashboard");
+        // Add small delay to ensure all state is updated
         setTimeout(() => {
-          console.log("Re-navigating to instructor dashboard after delay");
           navigate("/dashboard/instructor");
         }, 100);
       } 
-      else if (accountType === "Student") {
+      else if (validatedAccountType === "Student") {
         console.log("Navigating to student dashboard");
-        navigate("/dashboard/enrolled-courses");
+        setTimeout(() => {
+          navigate("/dashboard/enrolled-courses");
+        }, 100);
       } 
       else {
         console.log("Navigating to default profile");
-        navigate("/dashboard/my-profile");
+        setTimeout(() => {
+          navigate("/dashboard/my-profile");
+        }, 100);
       }
     } catch (error) {
-      console.log("LOGIN API ERROR.......", error)
-      toast.error(error.response?.data?.message)
+      console.log("LOGIN API ERROR.......", error);
+      
+      // Provide specific error messages for different failure scenarios
+      if (error.message === "Request timed out. Please check your network connection.") {
+        toast.error("Connection timeout. Please check your internet connection and try again.");
+      } else if (error.message === "Network Error") {
+        toast.error("Network error. The server might be offline or unreachable.");
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Login failed. Please try again.");
+      }
+    } finally {
+      dispatch(setLoading(false));
+      toast.dismiss(toastId);
     }
-    dispatch(setLoading(false))
-    toast.dismiss(toastId)
-  }
+  };
 }
 
 

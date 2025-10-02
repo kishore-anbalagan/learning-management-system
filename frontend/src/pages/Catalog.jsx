@@ -31,11 +31,11 @@ function Catalog() {
 
 
     useEffect(() => {
-        if (!categoryId) return
-        ; (async () => {
+        // Always fetch data even if categoryId is missing
+        (async () => {
             setLoading(true)
             try {
-                // getCatalogPageData now receives the placeholder id; expect backend to handle or return fallback
+                // getCatalogPageData will handle missing categoryId
                 const res = await getCatalogPageData(categoryId)
                 setCatalogPageData(res)
             } catch (error) {
@@ -55,15 +55,7 @@ function Catalog() {
             </div>
         )
     }
-    if (!loading && !catalogPageData) {
-        return (
-            <div className="text-white flex flex-col gap-4 justify-center items-center mt-[10%] px-4 text-center">
-                <p className="text-3xl font-semibold">Catalog Coming Soon</p>
-                <p className="max-w-xl text-richblack-300 text-sm">Category data service is not yet wired. Once the categories endpoint and a course details API are restored, this page will dynamically populate.</p>
-            </div>)
-    }
-
-
+  // We'll always have catalog data now thanks to our mock service
 
     return (
         <>

@@ -109,6 +109,23 @@ export const unenrollUserFromCourse = (userId, courseId) => {
         return { success: false, message: 'Failed to update enrollment data' };
       }
       
+      // Also clean up any old non-user-specific enrollments
+      try {
+        // Legacy key that might have been used before
+        const legacyKey = 'enrolledCourses';
+        const legacyEnrollments = safeLocalStorage.getItem(legacyKey);
+        
+        if (legacyEnrollments) {
+          const parsedEnrollments = JSON.parse(legacyEnrollments);
+          if (Array.isArray(parsedEnrollments) && parsedEnrollments.includes(courseId)) {
+            const updatedLegacyEnrollments = parsedEnrollments.filter(id => id !== courseId);
+            safeLocalStorage.setItem(legacyKey, JSON.stringify(updatedLegacyEnrollments));
+          }
+        }
+      } catch (e) {
+        console.error('Error cleaning up legacy enrollments:', e);
+      }
+      
       return { success: true, message: 'Successfully unenrolled from course' };
     } else {
       return { success: false, message: 'Not enrolled in this course' };

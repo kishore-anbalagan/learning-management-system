@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { FiFilter, FiSearch } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import { enrollInCourse, isEnrolledInCourse } from '../../../utils/enrolledCoursesManager';
+import CourseDetailModal from '../../common/CourseDetailModal';
+import { getCourseDetails } from '../../../services/operations/courseAPI';
 
 // Placeholder course images for different categories
 const categoryImages = {
@@ -139,6 +141,56 @@ export default function CourseCatalog() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [enrolling, setEnrolling] = useState(null);
   const [searchFocus, setSearchFocus] = useState(false);
+  
+  // State for course details modal
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [loadingCourseDetails, setLoadingCourseDetails] = useState(false);
+  
+  // Get user ID from localStorage
+  const [userId, setUserId] = useState(null);
+  
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserId(user._id);
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+    }
+  }, []);
+    
+  // Function to handle viewing course details
+  const handleViewDetails = async (courseId) => {
+    setLoadingCourseDetails(true);
+    
+    try {
+      // First check if we already have detailed info in our courses array
+      let courseDetails = courses.find(course => course._id === courseId);
+      
+      // If this is just a basic version, fetch detailed version from API
+      if (courseDetails && !courseDetails.courseContent) {
+        try {
+          // Get detailed course info from API
+          const response = await getCourseDetails(courseId);
+          if (response.success) {
+            courseDetails = { ...courseDetails, ...response.data };
+          }
+        } catch (error) {
+          console.log("Using existing course data, API fetch failed:", error);
+          // Continue with existing data if API fails
+        }
+      }
+      
+      setSelectedCourse(courseDetails);
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+      toast.error("Failed to load course details");
+    } finally {
+      setLoadingCourseDetails(false);
+    }
+  };
 
   useEffect(() => {
     const getCourses = async () => {
@@ -196,26 +248,53 @@ export default function CourseCatalog() {
       return;
     }
     
+    // Get user ID from localStorage
+    let userId = null;
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        userId = user._id;
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+    }
+    
+    // If no user ID is found, redirect to login
+    if (!userId) {
+      toast.error('User information not available');
+      navigate('/login');
+      return;
+    }
+    
     setEnrolling(courseId);
     try {
-      // Simulate API call for enrolling in a course
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000);
-      });
-      
-      if (response.success) {
-        // Save enrollment in localStorage
-        const enrolled = enrollInCourse(courseId);
+      // First try to enroll using API
+      try {
+        // Import the API function - we need to use dynamic import since we're in a component
+        const courseAPI = await import('../../../services/operations/courseAPI');
+        const response = await courseAPI.enrollInCourse(courseId, token);
         
-        if (enrolled) {
+        if (response && response.success) {
+          // If API call is successful, also update localStorage
+          enrollInCourse(courseId, userId);
           toast.success('Successfully enrolled in the course!');
-          // Navigate to enrolled courses page
           navigate('/dashboard/enrolled-courses');
-        } else {
-          toast.error('Error enrolling in course');
+          return;
         }
+      } catch (apiError) {
+        console.error('API enrollment failed, falling back to local enrollment:', apiError);
+      }
+      
+      // Fallback to localStorage enrollment if API fails
+      const enrolled = enrollInCourse(courseId, userId);
+      
+      if (enrolled) {
+        toast.success('Successfully enrolled in the course!');
+        // Navigate to enrolled courses page
+        navigate('/dashboard/enrolled-courses');
+      } else {
+        toast.error('Error enrolling in course');
       }
     } catch (error) {
       console.error('Error enrolling in course:', error);
@@ -296,16 +375,41 @@ export default function CourseCatalog() {
               course={course}
               onEnroll={handleEnroll}
               enrolling={enrolling === course._id}
+              onViewDetails={handleViewDetails}
             />
           ))}
         </div>
+      )}
+      
+      {/* Course Detail Modal */}
+      {selectedCourse && (
+        <CourseDetailModal 
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          onEnroll={handleEnroll}
+          isEnrolled={userId ? isEnrolledInCourse(selectedCourse._id, userId) : false}
+          enrolling={enrolling === selectedCourse._id}
+        />
       )}
     </div>
   );
 }
 
-function CourseCard({ course, onEnroll, enrolling }) {
-  const isEnrolled = isEnrolledInCourse(course._id);
+function CourseCard({ course, onEnroll, enrolling, onViewDetails }) {
+  // Get user ID from localStorage
+  let userId = null;
+  try {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      userId = user._id;
+    }
+  } catch (error) {
+    console.error('Error getting user data:', error);
+  }
+  
+  // Check if user is enrolled using user-specific enrollment check
+  const isEnrolled = isEnrolledInCourse(course._id, userId);
   
   return (
     <div className="bg-richblack-800 rounded-lg overflow-hidden border border-richblack-700 hover:border-yellow-50 hover:transform hover:scale-[1.01] transition-all duration-300 shadow-md">
@@ -359,12 +463,12 @@ function CourseCard({ course, onEnroll, enrolling }) {
         </div>
 
         <div className="flex gap-2">
-          <Link 
-            to={`/course-details/${course._id}`} 
+          <button 
+            onClick={() => onViewDetails(course._id)}
             className="flex-1 text-center py-2 rounded-md font-semibold border border-yellow-50 text-yellow-50 hover:bg-yellow-50 hover:text-richblack-900 transition-all"
           >
             Details
-          </Link>
+          </button>
           {isEnrolled ? (
             <Link
               to="/dashboard/enrolled-courses"

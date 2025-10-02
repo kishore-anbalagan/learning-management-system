@@ -22,8 +22,14 @@ const Navbar = () => {
     // cart removed in simplified build
     const location = useLocation();
 
-    // Catalog dropdown removed until category API implemented
-    const [subLinks] = useState([]);
+    // Sample categories for catalog dropdown
+    const [subLinks] = useState([
+        { name: "Web Development" },
+        { name: "Data Science" },
+        { name: "Mobile Development" },
+        { name: "Cloud Computing" },
+        { name: "Machine Learning" }
+    ]);
     const [loading] = useState(false);
 
 

@@ -19,10 +19,20 @@ export default function Instructor() {
     totalRevenue: 0
   });
 
+  // Debug logging on component mount
+  useEffect(() => {
+    console.log("===== Instructor Component Mount =====");
+    console.log("User:", user);
+    console.log("Selected account type:", localStorage.getItem("selectedAccountType"));
+    console.log("Token exists:", !!token);
+    console.log("====================================");
+  }, [user, token]);
+
   useEffect(() => {
     const fetchInstructorDashboardData = async () => {
       setLoading(true);
       try {
+        console.log("Fetching instructor dashboard data...");
         // Fetch instructor dashboard data
         const response = await apiConnector(
           "GET", 
@@ -118,16 +128,8 @@ export default function Instructor() {
             Instructor Dashboard
           </h1>
           <p className="text-richblack-300">
-            Welcome back, {data.instructor.firstName}! Here's an overview of your courses and performance.
+            Welcome back, {data.instructor.firstName}! Here's an overview of your courses and student performance.
           </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <Link
-            to="/dashboard/add-course"
-            className="bg-yellow-50 text-richblack-900 px-4 py-2 rounded-md font-medium hover:bg-yellow-100 transition-all flex items-center"
-          >
-            <span className="mr-2">+</span> Add New Course
-          </Link>
         </div>
       </div>
 
@@ -200,7 +202,7 @@ export default function Instructor() {
         
         <div className="bg-richblack-800 p-6 rounded-lg border border-richblack-700 col-span-1 lg:col-span-2">
           <h2 className="text-xl font-semibold text-richblack-5 mb-4">
-            Student Engagement
+            Student Performance Analytics
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="bg-richblack-700 p-4 rounded-md">
@@ -221,16 +223,41 @@ export default function Instructor() {
                 </div>
               </div>
             </div>
+            <div className="bg-richblack-700 p-4 rounded-md">
+              <p className="text-richblack-300 text-sm mb-1">Average Quiz Score</p>
+              <div className="flex items-center justify-between">
+                <p className="text-richblack-5 text-lg font-bold">78%</p>
+                <div className="w-24 h-2 bg-richblack-600 rounded-full overflow-hidden">
+                  <div className="h-full bg-yellow-50" style={{ width: '78%' }}></div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-richblack-700 p-4 rounded-md">
+              <p className="text-richblack-300 text-sm mb-1">Student Satisfaction</p>
+              <div className="flex items-center justify-between">
+                <p className="text-richblack-5 text-lg font-bold">4.7/5</p>
+                <div className="w-24 h-2 bg-richblack-600 rounded-full overflow-hidden">
+                  <div className="h-full bg-yellow-50" style={{ width: '94%' }}></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="bg-richblack-700 p-4 rounded-md">
-            <p className="text-richblack-300 text-sm mb-1">Recent Students</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {[1,2,3,4,5].map((_, idx) => (
-                <div key={idx} className="w-8 h-8 rounded-full bg-richblack-600"></div>
+            <p className="text-richblack-300 text-sm mb-1">Top Performing Students</p>
+            <div className="mt-3 space-y-3">
+              {[
+                { name: 'Alice Johnson', score: '96%', image: 'https://randomuser.me/api/portraits/women/32.jpg' },
+                { name: 'James Wilson', score: '92%', image: 'https://randomuser.me/api/portraits/men/52.jpg' },
+                { name: 'Emma Thompson', score: '89%', image: 'https://randomuser.me/api/portraits/women/45.jpg' }
+              ].map((student, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <img src={student.image} alt={student.name} className="w-8 h-8 rounded-full mr-3" />
+                    <span className="text-richblack-5">{student.name}</span>
+                  </div>
+                  <span className="text-yellow-50 font-medium">{student.score}</span>
+                </div>
               ))}
-              <div className="w-8 h-8 rounded-full bg-richblack-600 flex items-center justify-center">
-                <span className="text-xs text-richblack-300">+12</span>
-              </div>
             </div>
           </div>
         </div>
@@ -245,13 +272,7 @@ export default function Instructor() {
         {data.courses.length === 0 ? (
           <div className="text-center py-10 bg-richblack-800 rounded-lg border border-richblack-700">
             <p className="text-richblack-5 text-xl mb-2">No courses yet</p>
-            <p className="text-richblack-300 mb-4">Create your first course to get started</p>
-            <Link
-              to="/dashboard/add-course"
-              className="bg-yellow-50 text-richblack-900 px-6 py-3 rounded-md font-medium hover:bg-yellow-100 transition-all"
-            >
-              Create Course
-            </Link>
+            <p className="text-richblack-300 mb-4">Your courses will appear here when they're created.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

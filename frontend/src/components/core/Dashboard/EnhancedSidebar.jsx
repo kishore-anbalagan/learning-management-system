@@ -53,12 +53,6 @@ export default function EnhancedSidebar() {
             icon: <VscBook className="text-lg" />,
           },
           {
-            id: 8,
-            name: "Add Course",
-            path: "/dashboard/add-course",
-            icon: <VscAdd className="text-lg" />,
-          },
-          {
             id: 9,
             name: "Enrolled Students",
             path: "/dashboard/enrolled-students",
@@ -95,10 +89,17 @@ export default function EnhancedSidebar() {
 
       {/* Sidebar for large screens */}
       <div className="hidden lg:flex min-w-[220px] h-screen bg-richblack-800 flex-col border-r-[1px] border-richblack-700">
-        <div className="flex items-center justify-center h-[80px]">
+        <div className="flex items-center justify-center h-[80px] border-b border-richblack-700">
           <Link to="/">
             <img src={logo} alt="StudyNotion Logo" className="h-10" />
           </Link>
+        </div>
+        
+        {/* Account Type Badge */}
+        <div className="bg-richblack-700 px-3 py-2 text-center">
+          <span className="text-xs font-medium text-richblack-25">
+            {selectedAccountType === ACCOUNT_TYPE.INSTRUCTOR ? "INSTRUCTOR" : "STUDENT"} DASHBOARD
+          </span>
         </div>
 
         <div className="flex flex-col mt-6 space-y-1 px-3 py-2">
@@ -127,14 +128,21 @@ export default function EnhancedSidebar() {
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-300 ease-in-out lg:hidden`}
       >
-        <div className="flex items-center justify-center h-[80px]">
+        <div className="flex items-center justify-center h-[80px] border-b border-richblack-700">
           <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
             <img src={logo} alt="StudyNotion Logo" className="h-10" />
           </Link>
         </div>
+        
+        {/* Account Type Badge */}
+        <div className="bg-richblack-700 px-3 py-2 text-center">
+          <span className="text-xs font-medium text-richblack-25">
+            {selectedAccountType === ACCOUNT_TYPE.INSTRUCTOR ? "INSTRUCTOR" : "STUDENT"} DASHBOARD
+          </span>
+        </div>
 
-        <div className="flex flex-col mt-6 space-y-1 px-3 py-2">
-          {sidebarLinks.map((link) => (
+        <div className="flex flex-col mt-6 space-y-1 px-3 py-2">{
+          sidebarLinks.map((link) => (
             <SidebarLink
               key={link.id}
               link={link}

@@ -12,6 +12,8 @@ import Footer from '../components/common/Footer'
 import ExploreMore from '../components/core/HomePage/ExploreMore'
 import ReviewSlider from '../components/common/ReviewSlider'
 import Course_Slider from '../components/core/Catalog/Course_Slider'
+import CatalogCategories from '../components/core/HomePage/CatalogCategories'
+import { topEnrollmentCourses, popularPicksCourses } from '../data/mock_courses'
 
 import { getCatalogPageData } from '../services/operations/pageAndComponentData'
 
@@ -215,21 +217,11 @@ const Home = () => {
                         />
                     </div>
 
-                    {/* course slider */}
+                    {/* Categories section */}
                     <div className='mx-auto box-content w-full max-w-maxContentTab px- py-12 lg:max-w-maxContent'>
-                        <h2 className='text-white mb-6 text-2xl '>
-                            Popular Picks for You 🏆
-                        </h2>
-                        <Course_Slider Courses={CatalogPageData?.selectedCategory?.courses} />
+                        <CatalogCategories />
                     </div>
-                    <div className=' mx-auto box-content w-full max-w-maxContentTab px- py-12 lg:max-w-maxContent'>
-                        <h2 className='text-white mb-6 text-2xl '>
-                            Top Enrollments Today 🔥
-                        </h2>
-                        <Course_Slider Courses={CatalogPageData?.mostSellingCourses} />
-                    </div>
-
-
+                    
                     <ExploreMore />
                 </div>
 
@@ -286,9 +278,25 @@ const Home = () => {
 
                 {/*Section 3 */}
                 <div className='mt-14 w-11/12 mx-auto max-w-maxContent flex-col items-center justify-between gap-8 first-letter bg-richblack-900 text-white'>
+                    {/* Top Enrollment Courses Section */}
+                    <div className="mb-10">
+                        <h2 className="text-3xl lg:text-4xl font-semibold mb-6 flex items-center">
+                            Top Enrollments Today <FaArrowRight className="ml-2 text-yellow-25" />
+                        </h2>
+                        <Course_Slider Courses={topEnrollmentCourses} />
+                    </div>
+
+                    {/* Popular Picks Section */}
+                    <div className="mb-10">
+                        <h2 className="text-3xl lg:text-4xl font-semibold mb-6 flex items-center">
+                            Popular Picks <FaArrowRight className="ml-2 text-yellow-25" />
+                        </h2>
+                        <Course_Slider Courses={popularPicksCourses} />
+                    </div>
+
                     <InstructorSection />
 
-                    {/* Reviws from Other Learner */}
+                    {/* Reviews from Other Learner */}
                     <h1 className="text-center text-3xl lg:text-4xl font-semibold mt-8 flex justify-center items-center gap-x-3">
                         Reviews from other learners <MdOutlineRateReview className='text-yellow-25' />
                     </h1>

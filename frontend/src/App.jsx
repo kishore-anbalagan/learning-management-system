@@ -1,7 +1,9 @@
 
 import { useEffect, useState } from "react";
 import { Route, Routes, useLocation, Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { setToken } from "./slices/authSlice";
+import { getAuthToken } from "./utils/authUtils";
 
 import Home from "./pages/Home"
 import Login from "./pages/Login"
@@ -23,6 +25,7 @@ import ProtectedRoute from "./components/core/Auth/ProtectedRoute";
 
 import Dashboard from "./pages/Dashboard";
 import MyProfile from "./components/core/Dashboard/MyProfile";
+import AccountTypeProfile from "./components/core/Dashboard/AccountTypeProfile";
 import Settings from "./components/core/Dashboard/Settings/Settings";
 import Instructor from "./components/core/Dashboard/Instructor";
 import EnrolledStudents from "./components/core/Dashboard/EnrolledStudents";
@@ -31,6 +34,7 @@ import ViewCourse from "./components/core/Dashboard/ViewCourse";
 import EnrolledCourses from "./components/core/Dashboard/EnrolledCourses";
 import CourseCatalog from "./components/core/Dashboard/CourseCatalog";
 import StudentDashboard from "./components/core/Dashboard/StudentDashboard";
+import AccountTypeDashboard from "./components/core/Dashboard/AccountTypeDashboard";
 
 // Removed Cart feature in new simplified rebuild
 
@@ -43,6 +47,16 @@ import { HiArrowNarrowUp } from "react-icons/hi"
 function App() {
 
   const { user } = useSelector((state) => state.profile)
+  const dispatch = useDispatch();
+
+  // Initialize token from localStorage if available
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      dispatch(setToken(token));
+      console.log("Token loaded from localStorage and set in Redux store");
+    }
+  }, [dispatch]);
 
   // Scroll to the top of the page when the component mounts
   const location = useLocation();
@@ -140,13 +154,15 @@ function App() {
           </ProtectedRoute>
         }
         >
-          <Route path="dashboard/my-profile" element={<MyProfile />} />
+          <Route path="dashboard/my-profile" element={<AccountTypeProfile />} />
           <Route path="dashboard/settings" element={<Settings />} />
 
-          {/* Routes for all users (formerly student-only routes) */}
-          <Route path="dashboard/home" element={<StudentDashboard />} />
+          {/* Routes for all users based on their account type */}
+          <Route path="dashboard/home" element={<AccountTypeDashboard />} />
           <Route path="dashboard/enrolled-courses" element={<EnrolledCourses />} />
           <Route path="dashboard/course-catalog" element={<CourseCatalog />} />
+          <Route path="dashboard/my-courses" element={<Instructor />} />
+          <Route path="dashboard/enrolled-students" element={<EnrolledStudents />} />
           <Route path="dashboard/view-course/:courseId" element={<ViewCourse />} />
 
           {/* Instructor routes - only shown to instructors but accessible to everyone */}

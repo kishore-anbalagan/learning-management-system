@@ -1,4 +1,8 @@
-const BASE_URL = import.meta.env.VITE_APP_BASE_URL;
+// Add fallback for when environment variable is not defined
+const BASE_URL = import.meta.env.VITE_APP_BASE_URL || 'http://localhost:4000/api/v1';
+
+// Log the base URL to help with debugging
+console.log("API Base URL:", BASE_URL);
 
 // AUTH ENDPOINTS
 export const endpoints = {
@@ -27,6 +31,7 @@ export const dashboardEndpoints = {
   GET_COURSE_DETAILS_API: BASE_URL + "/dashboard/course",
   GET_COURSE_PROGRESS_API: BASE_URL + "/dashboard/course-progress",
   MARK_LECTURE_COMPLETE_API: BASE_URL + "/dashboard/mark-complete",
+  UNENROLL_FROM_COURSE_API: BASE_URL + "/dashboard/unenroll",
   
   // Instructor dashboard
   GET_INSTRUCTOR_DASHBOARD_API: BASE_URL + "/dashboard/instructor",

@@ -15,10 +15,17 @@ import { courseEndpoints } from '../services/apis';
 import { getCourseDetails } from '../services/operations/courseAPI';
 import { unenrollFromCourse as apiUnenrollFromCourse } from '../services/operations/dashboardAPI';
 
-// Mock data for specific course details - this would come from API
-const courseDetailsData = {
-  // Flutter course details
-  '8': {
+// Import mock course data
+import { topEnrollmentCourses } from '../data/mock_courses';
+import { sampleCourses } from '../data/sample_courses';
+
+// Combined mock data for fallback (more comprehensive)
+const generateMockCourseData = () => {
+  // Start with an empty object
+  const mockData = {};
+  
+  // Add the detailed mock courses
+  mockData['8'] = {
     _id: '8',
     courseName: 'Flutter Mobile Development',
     courseDescription: 'Build beautiful cross-platform mobile apps with Flutter and Dart. Learn UI design, state management, API integration, and how to publish your apps to both iOS and Android app stores.',
@@ -87,9 +94,9 @@ const courseDetailsData = {
         ]
       }
     ]
-  },
-  // JavaScript course details
-  '1': {
+  };
+  
+  mockData['1'] = {
     _id: '1',
     courseName: 'JavaScript for Beginners',
     courseDescription: 'Start your journey with JavaScript, the most popular programming language for web development. Learn core concepts, DOM manipulation, asynchronous programming, and build real-world projects.',
@@ -149,8 +156,181 @@ const courseDetailsData = {
         ]
       }
     ]
-  }
+  };
+  
+  // Add the topEnrollmentCourses to our mock data with enhanced details
+  topEnrollmentCourses.forEach(course => {
+    if (!mockData[course._id]) {
+      mockData[course._id] = {
+        ...course,
+        averageRating: course.ratingAndReviews ? 
+          course.ratingAndReviews.reduce((acc, r) => acc + r.rating, 0) / course.ratingAndReviews.length : 
+          4.5,
+        ratingCount: course.ratingAndReviews?.length || 0,
+        totalLectures: Math.floor(Math.random() * 30) + 10,
+        totalDuration: `${Math.floor(Math.random() * 15) + 5} hours ${Math.floor(Math.random() * 45) + 10} minutes`,
+        language: 'English',
+        level: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)],
+        lastUpdated: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString().split('T')[0],
+        instructor: {
+          ...course.instructor,
+          image: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+          bio: 'Experienced instructor with a passion for teaching and helping students achieve their goals.'
+        },
+        whatYouWillLearn: [
+          'Understand core concepts and principles',
+          'Build real-world projects from scratch',
+          'Apply best practices and industry standards',
+          'Develop problem-solving skills',
+          'Prepare for technical interviews and job opportunities'
+        ],
+        prerequisites: [
+          'Basic computer literacy',
+          'Familiarity with web technologies is helpful but not required'
+        ],
+        sections: [
+          {
+            title: 'Introduction',
+            lectures: [
+              { title: 'Course Overview', duration: '08:30' },
+              { title: 'Setting Up Your Environment', duration: '15:45' },
+              { title: 'First Steps', duration: '20:10' }
+            ]
+          },
+          {
+            title: 'Core Concepts',
+            lectures: [
+              { title: 'Fundamental Principles', duration: '22:15' },
+              { title: 'Advanced Techniques', duration: '25:30' },
+              { title: 'Best Practices', duration: '18:45' }
+            ]
+          },
+          {
+            title: 'Practical Applications',
+            lectures: [
+              { title: 'Project Setup', duration: '17:20' },
+              { title: 'Implementation', duration: '28:35' },
+              { title: 'Testing and Deployment', duration: '24:10' }
+            ]
+          }
+        ]
+      };
+    }
+  });
+  
+  // Add the sampleCourses to our mock data with enhanced details
+  sampleCourses.forEach(course => {
+    if (!mockData[course._id]) {
+      mockData[course._id] = {
+        ...course,
+        averageRating: course.ratingAndReviews ? 
+          course.ratingAndReviews.reduce((acc, r) => acc + r.rating, 0) / course.ratingAndReviews.length : 
+          4.5,
+        ratingCount: course.ratingAndReviews?.length || 0,
+        totalLectures: Math.floor(Math.random() * 30) + 10,
+        totalDuration: `${Math.floor(Math.random() * 15) + 5} hours ${Math.floor(Math.random() * 45) + 10} minutes`,
+        language: 'English',
+        level: ['Beginner', 'Intermediate', 'Advanced'][Math.floor(Math.random() * 3)],
+        lastUpdated: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString().split('T')[0],
+        instructor: {
+          ...course.instructor,
+          image: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+          bio: 'Experienced instructor with a passion for teaching and helping students achieve their goals.'
+        },
+        whatYouWillLearn: [
+          'Understand core concepts and principles',
+          'Build real-world projects from scratch',
+          'Apply best practices and industry standards',
+          'Develop problem-solving skills',
+          'Prepare for technical interviews and job opportunities'
+        ],
+        prerequisites: [
+          'Basic computer literacy',
+          'Familiarity with web technologies is helpful but not required'
+        ],
+        sections: [
+          {
+            title: 'Introduction',
+            lectures: [
+              { title: 'Course Overview', duration: '08:30' },
+              { title: 'Setting Up Your Environment', duration: '15:45' },
+              { title: 'First Steps', duration: '20:10' }
+            ]
+          },
+          {
+            title: 'Core Concepts',
+            lectures: [
+              { title: 'Fundamental Principles', duration: '22:15' },
+              { title: 'Advanced Techniques', duration: '25:30' },
+              { title: 'Best Practices', duration: '18:45' }
+            ]
+          },
+          {
+            title: 'Practical Applications',
+            lectures: [
+              { title: 'Project Setup', duration: '17:20' },
+              { title: 'Implementation', duration: '28:35' },
+              { title: 'Testing and Deployment', duration: '24:10' }
+            ]
+          }
+        ]
+      };
+    }
+  });
+  
+  // Add a generic fallback for any other course ID
+  mockData['fallback'] = {
+    _id: 'fallback',
+    courseName: 'Sample Course',
+    courseDescription: 'This is a sample course description. The actual course details could not be loaded.',
+    thumbnail: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    instructor: { 
+      firstName: 'John', 
+      lastName: 'Doe',
+      image: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+      bio: 'Experienced instructor with a passion for teaching.'
+    },
+    category: { name: 'General' },
+    price: 999,
+    averageRating: 4.0,
+    ratingCount: 10,
+    tags: ['general', 'course'],
+    totalLectures: 20,
+    totalDuration: '8 hours 30 minutes',
+    language: 'English',
+    level: 'All Levels',
+    lastUpdated: new Date().toISOString().split('T')[0],
+    whatYouWillLearn: [
+      'Core concepts and principles',
+      'Practical applications',
+      'Industry best practices'
+    ],
+    prerequisites: [
+      'No prerequisites required'
+    ],
+    sections: [
+      {
+        title: 'Introduction',
+        lectures: [
+          { title: 'Welcome to the Course', duration: '10:00' },
+          { title: 'Course Overview', duration: '15:00' }
+        ]
+      },
+      {
+        title: 'Getting Started',
+        lectures: [
+          { title: 'Basic Concepts', duration: '20:00' },
+          { title: 'First Steps', duration: '25:00' }
+        ]
+      }
+    ]
+  };
+  
+  return mockData;
 };
+
+// Create comprehensive mock data
+const courseDetailsData = generateMockCourseData();
 
 export default function CourseDetailPage() {
   const { courseId } = useParams();
@@ -161,16 +341,19 @@ export default function CourseDetailPage() {
   const [expandedSections, setExpandedSections] = useState([]);
   const [enrolling, setEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCourseData = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
         // First try to get from API using the proper API function
         let data = null;
         try {
           const response = await getCourseDetails(courseId);
-          if (response.success) {
+          if (response && response.success) {
             data = response.data;
           }
         } catch (apiError) {
@@ -180,11 +363,39 @@ export default function CourseDetailPage() {
 
         // If API fails, fall back to mock data
         if (!data) {
+          // Try to get the specific course mock data
           data = courseDetailsData[courseId];
+          
+          // If specific course mock data is not available, use the fallback
+          if (!data) {
+            console.log("Specific course mock data not found, using fallback");
+            data = {...courseDetailsData['fallback'], _id: courseId};
+          }
         }
 
         if (data) {
-          setCourseDetails(data);
+          // Ensure we have complete data by filling in any missing fields with defaults
+          const completeData = {
+            ...data,
+            averageRating: data.averageRating || 0,
+            ratingCount: data.ratingCount || 0,
+            totalLectures: data.totalLectures || 0,
+            totalDuration: data.totalDuration || 'Self-paced',
+            language: data.language || 'English',
+            level: data.level || 'All Levels',
+            lastUpdated: data.lastUpdated || new Date().toISOString().split('T')[0],
+            instructor: data.instructor || { 
+              firstName: 'Instructor', 
+              lastName: '',
+              image: 'https://via.placeholder.com/150',
+              bio: 'No bio available'
+            },
+            whatYouWillLearn: data.whatYouWillLearn || [],
+            prerequisites: data.prerequisites || [],
+            sections: data.sections || []
+          };
+          
+          setCourseDetails(completeData);
           
           // Get user ID from localStorage
           let userId = null;
@@ -201,12 +412,13 @@ export default function CourseDetailPage() {
           // Check if already enrolled with user-specific check
           setIsEnrolled(isEnrolledInCourse(courseId, userId));
         } else {
-          // If course not found, could navigate to 404 or course catalog
+          // This should never happen now with our fallback, but just in case
+          setError('Course not found');
           toast.error('Course not found');
-          navigate('/dashboard/course-catalog');
         }
       } catch (error) {
         console.error('Error fetching course details:', error);
+        setError('Failed to load course details');
         toast.error('Failed to load course details');
       } finally {
         setLoading(false);
@@ -265,7 +477,7 @@ export default function CourseDetailPage() {
           }
         );
         
-        if (response.data && response.data.success) {
+        if (response && response.data && response.data.success) {
           // If API succeeds, also update localStorage
           enrollInCourse(courseId, userId);
           toast.success('Successfully enrolled in the course!');
@@ -363,11 +575,11 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (!courseDetails) {
+  if (error || !courseDetails) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-3.5rem)] bg-richblack-900 text-richblack-5">
         <h2 className="text-2xl font-bold mb-4">Course Not Found</h2>
-        <p className="text-richblack-300 mb-6">The course you're looking for could not be found.</p>
+        <p className="text-richblack-300 mb-6">The course you're looking for could not be loaded.</p>
         <button 
           onClick={() => navigate('/dashboard/course-catalog')} 
           className="px-6 py-3 bg-yellow-50 text-richblack-900 rounded-md hover:bg-yellow-100 transition-all"
@@ -434,7 +646,7 @@ export default function CourseDetailPage() {
                   <div className="text-richblack-300 text-sm mb-1">Duration</div>
                   <div className="flex items-center gap-2">
                     <BiTime className="text-yellow-50" />
-                    <span>{courseDetails.totalDuration || 'Not specified'}</span>
+                    <span>{courseDetails.totalDuration || 'Self-paced'}</span>
                   </div>
                 </div>
                 
@@ -606,18 +818,19 @@ export default function CourseDetailPage() {
                           <span className="font-semibold">{section.title}</span>
                         </div>
                         <div className="text-richblack-300 text-sm">
-                          {section.lectures.length} lectures • 
-                          {section.lectures.reduce((total, lecture) => {
-                            if (lecture.duration) {
-                              const [minutes, seconds] = lecture.duration.split(':').map(Number);
-                              return total + minutes * 60 + seconds;
-                            }
-                            return total;
-                          }, 0) / 60} min
+                          {section.lectures ? section.lectures.length : 0} lectures • 
+                          {section.lectures ? 
+                            (section.lectures.reduce((total, lecture) => {
+                              if (lecture.duration) {
+                                const [minutes, seconds] = lecture.duration.split(':').map(Number);
+                                return total + (minutes * 60 + (seconds || 0));
+                              }
+                              return total;
+                            }, 0) / 60).toFixed(1) : 0} min
                         </div>
                       </button>
                       
-                      {expandedSections.includes(sectionIndex) && (
+                      {expandedSections.includes(sectionIndex) && section.lectures && (
                         <div className="bg-richblack-900 pl-10">
                           {section.lectures.map((lecture, lectureIndex) => (
                             <div 

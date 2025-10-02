@@ -1,0 +1,45 @@
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
+import { FiBookOpen, FiClock, FiAward, FiTrendingUp, FiCalendar, FiTarget, FiCheckCircle, FiX } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { ACCOUNT_TYPE } from '../../../utils/constants';
+import { getEnrolledCourses } from '../../../services/operations/dashboardAPI';
+import { getInstructorData } from '../../../services/operations/profileAPI';
+import InstructorCourseCard from './InstructorCourseCard';
+import CourseCard from './CourseCard';
+import { apiConnector } from '../../../services/apiConnector';
+
+// Study tips for effective learning
+const allStudyTips = [
+  {
+    title: 'Active Recall',
+    description: 'Test yourself frequently. Try to remember material without looking at notes.',
+    icon: <FiTarget className=	ext-yellow-50 text-xl />
+  },
+  {
+    title: 'Spaced Repetition',
+    description: 'Review material at increasing intervals for better long-term retention.',
+    icon: <FiCalendar className=	ext-yellow-50 text-xl />
+  },
+  {
+    title: 'Teach Others',
+    description: 'Explaining concepts to others helps solidify your understanding.',
+    icon: <FiAward className=	ext-yellow-50 text-xl />
+  },
+  {
+    title: 'Take Regular Breaks',
+    description: 'Use the Pomodoro technique: 25 minutes of focus followed by a 5-minute break.',
+    icon: <FiClock className=	ext-yellow-50 text-xl />
+  },
+  {
+    title: 'Create Mind Maps',
+    description: 'Visualize connections between concepts to improve understanding.',
+    icon: <FiTrendingUp className=	ext-yellow-50 text-xl />
+  },
+  {
+    title: 'Practical Application',
+    description: 'Apply what you learn by building small projects or solving problems.',
+    icon: <FiCheckCircle className=	ext-yellow-50 text-xl />
+  }
+];
