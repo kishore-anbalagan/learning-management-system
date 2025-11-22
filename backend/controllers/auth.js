@@ -1,11 +1,14 @@
 // sendOtp , signup , login ,  changePassword
 const User = require('./../models/user');
 const Profile = require('./../models/profile');
+const OTP = require('./../models/OTP');
+const optGenerator = require('otp-generator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const mailSender = require('../utils/mailSender');
 const { passwordUpdated } = require("../mail/templates/passwordUpdate");
+const otpTemplate = require('../mail/templates/emailVerificationTemplate');
 
 // ================ SEND-OTP For Email Verification ================
 exports.sendOTP = async (req, res) => {
@@ -153,6 +156,14 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Validate accountType is provided
+        if (!accountType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Account type is required'
+            });
+        }
+
         // check user is registered and saved data in DB
         let user = await User.findOne({ email }).populate('additionalDetails');
 
@@ -163,6 +174,13 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Validate that the user's accountType matches the requested accountType
+        if (user.accountType !== accountType) {
+            return res.status(403).json({
+                success: false,
+                message: `This account is registered as ${user.accountType}. Please use the ${user.accountType} login.`
+            });
+        }
 
         // comapare given password and saved password from DB
         if (await bcrypt.compare(password, user.password)) {

@@ -81,6 +81,18 @@ export default function EnrolledCourses() {
     const fetchCourses = async () => {
       setLoading(true);
       try {
+        // Clear any stale localStorage data first
+        try {
+          const userId = user?._id;
+          if (userId) {
+            const { clearEnrolledCourses } = await import('../../../utils/enrolledCoursesManager');
+            clearEnrolledCourses(userId);
+            console.log("Cleared stale localStorage data before fetching");
+          }
+        } catch (clearError) {
+          console.error("Error clearing localStorage:", clearError);
+        }
+        
         let fetchedCourses = [];
         
         if (selectedAccountType === ACCOUNT_TYPE.INSTRUCTOR) {
@@ -96,27 +108,23 @@ export default function EnrolledCourses() {
               // Get courses from the server response
               fetchedCourses = response.data || [];
               
-              // Log successful API call
+              // Log successful API call and actual course data
               console.log("Successfully fetched enrolled courses:", fetchedCourses.length);
-              
-              // If we don't have any courses from the API, try localStorage as fallback
-              if (fetchedCourses.length === 0) {
-                // Import dynamically to avoid require() issues
-                const { getEnrolledCourses: getLocalEnrolledCourses } = await import('../../../utils/enrolledCoursesManager');
-                const localCourses = getLocalEnrolledCourses(user._id);
-                if (localCourses && localCourses.length > 0) {
-                  fetchedCourses = localCourses;
-                  console.log("Using enrolled courses from localStorage:", fetchedCourses.length);
-                }
+              if (fetchedCourses.length > 0) {
+                console.log("First course data:", fetchedCourses[0]);
+                console.log("Course structure check:", {
+                  hasCategory: !!fetchedCourses[0]?.category,
+                  categoryName: fetchedCourses[0]?.category?.name,
+                  hasInstructor: !!fetchedCourses[0]?.instructor,
+                  instructorName: fetchedCourses[0]?.instructor?.firstName,
+                  courseName: fetchedCourses[0]?.courseName,
+                  thumbnail: fetchedCourses[0]?.thumbnail
+                });
               }
             } catch (error) {
               console.error("Error fetching enrolled courses:", error);
-              toast.error("Failed to fetch enrolled courses. Using local data if available.");
-              
-              // Try to get from localStorage on API error
-              const { getEnrolledCourses: getLocalEnrolledCourses } = await import('../../../utils/enrolledCoursesManager');
-              const localCourses = getLocalEnrolledCourses(user._id);
-              fetchedCourses = localCourses || [];
+              toast.error("Failed to fetch enrolled courses");
+              fetchedCourses = [];
             }
           } else {
             console.warn("No user ID available, cannot fetch enrolled courses");
@@ -124,26 +132,29 @@ export default function EnrolledCourses() {
           }
         }
         
-        // Add progress data to courses if not present
+        // Use the courses with actual progress data from API
         const coursesWithProgress = fetchedCourses.map(course => {
-          // If course already has progress data, use it, otherwise add placeholder
-          if (!course.progress) {
-            const randomProgress = Math.floor(Math.random() * 100);
-            const totalLessons = course.courseContent?.reduce(
-              (acc, section) => acc + section.subSection?.length, 0
-            ) || 20;
-            const completedLessons = Math.floor(totalLessons * (randomProgress / 100));
-            
-            return {
-              ...course,
-              progress: randomProgress,
-              totalLessons,
-              completedLessons
-            };
-          }
-          return course;
+          console.log("Processing course:", {
+            id: course._id,
+            name: course.courseName,
+            thumbnail: course.thumbnail,
+            category: course.category,
+            instructor: course.instructor,
+            hasContent: !!course.courseContent
+          });
+          
+          // Use the progress data from the API response
+          return {
+            ...course,
+            progress: course.progress || course.progressPercentage || 0,
+            totalLessons: course.totalLessons || course.courseContent?.reduce(
+              (acc, section) => acc + (section.subSection?.length || 0), 0
+            ) || 0,
+            completedLessons: course.completedLessons || 0
+          };
         });
         
+        console.log("Final courses with progress:", coursesWithProgress);
         setCourses(coursesWithProgress);
         setFilteredCourses(coursesWithProgress);
       } catch (error) {

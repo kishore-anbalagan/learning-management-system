@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 
 const courseProgressSchema = new mongoose.Schema({
-    courseId: {
+    courseID: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Course",
         required: true
@@ -11,6 +11,12 @@ const courseProgressSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    completedVideos: [
+        {
+            type: String,
+            required: true
+        }
+    ],
     completedLectures: [
         {
             lectureId: {
@@ -25,7 +31,15 @@ const courseProgressSchema = new mongoose.Schema({
     ],
     progress: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0,
+        max: 100
+    },
+    progressPercentage: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
     },
     startedAt: {
         type: Date,
@@ -34,8 +48,14 @@ const courseProgressSchema = new mongoose.Schema({
     lastAccessed: {
         type: Date,
         default: Date.now
+    },
+    completedAt: {
+        type: Date
     }
 }, { timestamps: true });
+
+// Compound index to ensure one progress record per user per course
+courseProgressSchema.index({ courseID: 1, userId: 1 }, { unique: true });
 
 module.exports = mongoose.model("CourseProgress", courseProgressSchema)
 

@@ -10,10 +10,9 @@ const {
   GET_INSTRUCTOR_COURSES_API,
   GET_ENROLLED_STUDENTS_API,
   SEND_ENCOURAGEMENT_API,
-  UNENROLL_FROM_COURSE_API,
 } = dashboardEndpoints;
 
-const { GET_USER_ENROLLED_COURSES_API } = profileEndpoints;
+const { GET_USER_ENROLLED_COURSES_API, UNENROLL_FROM_COURSE_API } = profileEndpoints;
 
 // Student Dashboard Services
 export const getStudentDashboard = async (token) => {
@@ -29,64 +28,47 @@ export const getStudentDashboard = async (token) => {
 };
 
 export const getEnrolledCourses = async (token) => {
-  // First, try to get data from localStorage as an immediate response
-  let localCoursesData = null;
-  
+  // ALWAYS try to get fresh data from API first to ensure we have the latest course data
   try {
-    // Import dynamically to avoid require() issues
-    const { getEnrolledCourses: getLocalEnrolledCourses } = await import('../../utils/enrolledCoursesManager');
-    const userId = JSON.parse(localStorage.getItem('user'))?._id;
-    if (userId) {
-      const localCourses = getLocalEnrolledCourses(userId);
-      if (localCourses && localCourses.length > 0) {
-        console.log("Retrieved enrolled courses from localStorage:", localCourses);
-        localCoursesData = { success: true, data: localCourses };
-      }
-    }
-  } catch (localError) {
-    console.error("Initial localStorage read failed:", localError);
-  }
-  
-  // If we have local data, return it right away
-  if (localCoursesData?.data?.length > 0) {
-    console.log("Using local enrolled courses data");
+    console.log("Fetching enrolled courses from API...");
     
-    // Try to get fresh data from API in the background (don't await)
-    fetchFreshDataInBackground(token);
-    
-    return localCoursesData;
-  }
-  
-  // If no local data, try the API
-  try {
     // Use the profile endpoint which is properly implemented in the backend
     const response = await apiConnector("GET", GET_USER_ENROLLED_COURSES_API, null, {
       Authorization: `Bearer ${token}`,
     });
-    console.log("API returned enrolled courses successfully");
-    return response.data;
-  } catch (error) {
-    console.error("GET_USER_ENROLLED_COURSES_API ERROR", error);
     
-    // If we have ANY local data as fallback, use it now
-    if (localCoursesData) {
-      console.log("API failed, falling back to localStorage data");
-      return localCoursesData;
+    if (response.data.success && response.data.data) {
+      console.log("API returned enrolled courses successfully:", response.data.data.length, "courses");
+      
+      // Log first course to verify data structure
+      if (response.data.data.length > 0) {
+        console.log("First course from API:", {
+          name: response.data.data[0].courseName,
+          thumbnail: response.data.data[0].thumbnail,
+          category: response.data.data[0].category?.name,
+          instructor: `${response.data.data[0].instructor?.firstName} ${response.data.data[0].instructor?.lastName}`
+        });
+      }
+      
+      return response.data;
     }
+  } catch (error) {
+    console.error("GET_USER_ENROLLED_COURSES_API ERROR:", error);
+    console.log("Attempting to use localStorage as fallback...");
     
-    // Last resort - try one more time to get localStorage data
+    // Only use localStorage as a fallback if API fails
     try {
       const { getEnrolledCourses: getLocalEnrolledCourses } = await import('../../utils/enrolledCoursesManager');
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
       if (userId) {
         const localCourses = getLocalEnrolledCourses(userId);
         if (localCourses && localCourses.length > 0) {
-          console.log("Last resort: Retrieved enrolled courses from localStorage");
+          console.log("Using localStorage fallback data:", localCourses.length, "courses");
           return { success: true, data: localCourses };
         }
       }
     } catch (localError) {
-      console.error("Final localStorage fallback failed:", localError);
+      console.error("localStorage fallback also failed:", localError);
     }
     
     // If we get here, we have no data, so throw the original error

@@ -2,18 +2,29 @@ const mongoose = require('mongoose');
 
 const subSectionSchema = new mongoose.Schema({
     title: {
-        type: String
+        type: String,
+        required: true,
+        trim: true
     },
     timeDuration: {
-        type: String
+        type: String,
+        required: true
     },
     description: {
-        type: String
+        type: String,
+        required: true,
+        trim: true
     },
     videoUrl: {
-        type: String
+        type: String,
+        required: true,
+        trim: true
+    },
+    youtubeUrl: {
+        type: String,
+        trim: true,
+        default: ''
     }
-
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('SubSection', subSectionSchema) 

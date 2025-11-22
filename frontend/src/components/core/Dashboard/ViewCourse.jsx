@@ -5,101 +5,87 @@ import { toast } from 'react-hot-toast';
 import { FiArrowLeft, FiChevronDown, FiChevronUp, FiCheckCircle, FiCircle, FiClock } from 'react-icons/fi';
 import { hasCourseAccess } from '../../../utils/courseAccessUtils';
 import { shouldHaveStudentAccess } from '../../../utils/accessOverrides';
+import { apiConnector } from '../../../services/apiConnector';
+import { courseEndpoints } from '../../../services/apis';
 
-// This will be replaced with actual API calls
+// Use fallback if courseEndpoints.COURSE_DETAILS_API is undefined
+const COURSE_DETAILS_API = courseEndpoints.COURSE_DETAILS_API || 'http://localhost:4001/api/v1/course/getCourseDetails';
+
+console.log('ViewCourse - COURSE_DETAILS_API:', COURSE_DETAILS_API);
+console.log('ViewCourse - courseEndpoints:', courseEndpoints);
+
+// Fetch actual course content from API
 const fetchCourseContent = async (courseId, token) => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        _id: '1',
-        courseName: 'Introduction to Web Development',
-        courseDescription: 'Learn the fundamentals of web development including HTML, CSS, and JavaScript.',
-        instructor: {
-          _id: 'i1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          image: 'https://placehold.co/200'
-        },
-        thumbnail: 'https://placehold.co/600x400',
-        sections: [
-          {
-            _id: 'section1',
-            sectionName: 'Getting Started with HTML',
-            completed: true,
-            subSections: [
-              {
-                _id: 'sub1',
-                title: 'Introduction to HTML',
-                description: 'Learn about HTML tags and structure',
-                videoUrl: 'https://example.com/video1',
-                duration: '10:25',
-                completed: true
-              },
-              {
-                _id: 'sub2',
-                title: 'HTML Forms and Inputs',
-                description: 'Learn to create interactive forms',
-                videoUrl: 'https://example.com/video2',
-                duration: '15:30',
-                completed: true
-              }
-            ]
-          },
-          {
-            _id: 'section2',
-            sectionName: 'CSS Fundamentals',
-            completed: false,
-            subSections: [
-              {
-                _id: 'sub3',
-                title: 'Introduction to CSS',
-                description: 'Learn about CSS selectors and properties',
-                videoUrl: 'https://example.com/video3',
-                duration: '12:45',
-                completed: true
-              },
-              {
-                _id: 'sub4',
-                title: 'CSS Layouts',
-                description: 'Learn about Flexbox and Grid',
-                videoUrl: 'https://example.com/video4',
-                duration: '18:20',
-                completed: false
-              }
-            ]
-          },
-          {
-            _id: 'section3',
-            sectionName: 'JavaScript Basics',
-            completed: false,
-            subSections: [
-              {
-                _id: 'sub5',
-                title: 'Introduction to JavaScript',
-                description: 'Learn about JavaScript syntax and variables',
-                videoUrl: 'https://example.com/video5',
-                duration: '14:30',
-                completed: false
-              },
-              {
-                _id: 'sub6',
-                title: 'DOM Manipulation',
-                description: 'Learn how to interact with the DOM',
-                videoUrl: 'https://example.com/video6',
-                duration: '20:15',
-                completed: false
-              }
-            ]
-          }
-        ],
-        progress: 50, // percentage
-        totalDuration: '91:45',
-        completedDuration: '38:40'
+  try {
+    console.log('Fetching course with ID:', courseId);
+    console.log('Using API URL:', COURSE_DETAILS_API);
+    
+    const response = await apiConnector(
+      'GET',
+      `${COURSE_DETAILS_API}?courseId=${courseId}`,
+      null,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+    
+    if (response.data.success) {
+      const courseData = response.data.data;
+      
+      console.log('Fetched course data:', {
+        courseName: courseData.courseName,
+        hasThumbnail: !!courseData.thumbnail,
+        hasCategory: !!courseData.category,
+        hasInstructor: !!courseData.instructor,
+        sectionsCount: courseData.courseContent?.length
       });
-    }, 1000);
-  });
+      
+      // Transform the data to match our component structure
+      return {
+        _id: courseData._id,
+        courseName: courseData.courseName,
+        courseDescription: courseData.courseDescription,
+        instructor: courseData.instructor || {
+          firstName: 'Unknown',
+          lastName: 'Instructor',
+          email: '',
+          image: 'https://api.dicebear.com/5.x/initials/svg?seed=UI'
+        },
+        thumbnail: courseData.thumbnail || 'https://via.placeholder.com/500x300?text=Course+Image',
+        category: courseData.category || { name: 'General', description: '' },
+        sections: (courseData.courseContent || []).map(section => ({
+          _id: section._id,
+          sectionName: section.sectionName,
+          completed: false,
+          subSections: (section.subSection || []).map(sub => ({
+            _id: sub._id,
+            title: sub.title,
+            description: sub.description,
+            videoUrl: sub.videoUrl || sub.youtubeUrl,
+            youtubeUrl: sub.youtubeUrl || sub.videoUrl,
+            duration: sub.timeDuration ? formatDuration(sub.timeDuration) : '0:00',
+            completed: false
+          }))
+        })),
+        progress: 0,
+        totalDuration: '0:00',
+        completedDuration: '0:00'
+      };
+    }
+    
+    throw new Error('Failed to fetch course details');
+  } catch (error) {
+    console.error('Error fetching course content:', error);
+    throw error;
+  }
+};
+
+// Helper function to format duration from seconds to MM:SS
+const formatDuration = (seconds) => {
+  const secs = parseInt(seconds) || 0;
+  const mins = Math.floor(secs / 60);
+  const remainingSecs = secs % 60;
+  return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
 };
 
 // This will be replaced with actual API call
@@ -107,6 +93,26 @@ const markAsCompleted = async (courseId, subSectionId, token) => {
   return new Promise((resolve) => {
     setTimeout(() => resolve({ success: true }), 500);
   });
+};
+
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeVideoId = (url) => {
+  if (!url) return '';
+  
+  // Handle different YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return url; // Return as-is if no pattern matches
 };
 
 export default function ViewCourse() {
@@ -259,9 +265,31 @@ export default function ViewCourse() {
             >
               <FiArrowLeft className="mr-2" /> Back to Courses
             </Link>
+            
+            {/* Course Thumbnail */}
+            {courseData.thumbnail && (
+              <div className="mb-4 rounded-lg overflow-hidden">
+                <img 
+                  src={courseData.thumbnail} 
+                  alt={courseData.courseName}
+                  className="w-full h-32 object-cover"
+                />
+              </div>
+            )}
+            
             <h2 className="text-xl font-bold text-richblack-5 mb-1">
               {courseData.courseName}
             </h2>
+            
+            {/* Category Badge */}
+            {courseData.category && (
+              <div className="mb-3">
+                <span className="text-xs text-yellow-50 bg-yellow-900 bg-opacity-50 px-2 py-1 rounded-full inline-block">
+                  {courseData.category.name || 'General'}
+                </span>
+              </div>
+            )}
+            
             <div className="flex items-center mb-4">
               <div className="bg-yellow-50 h-2 rounded-full overflow-hidden w-full max-w-[200px] mr-3">
                 <div
@@ -356,35 +384,57 @@ export default function ViewCourse() {
           <div className="bg-richblack-800 rounded-lg border border-richblack-700 overflow-hidden h-full flex flex-col">
             {/* Video Player */}
             <div className="relative bg-richblack-900 aspect-video">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <img 
-                  src="https://placehold.co/800x450" 
-                  alt="Video Placeholder" 
-                  className="max-w-full max-h-full object-contain"
-                />
-                <p className="absolute text-white bg-richblack-900 bg-opacity-80 p-2 rounded">
-                  Video Player Placeholder
-                </p>
-              </div>
+              {activeVideo.videoUrl || activeVideo.youtubeUrl ? (
+                <div className="absolute inset-0">
+                  {/* YouTube Video Player */}
+                  {(activeVideo.youtubeUrl || activeVideo.videoUrl) && (
+                    <iframe
+                      className="w-full h-full"
+                      src={`https://www.youtube.com/embed/${extractYouTubeVideoId(activeVideo.youtubeUrl || activeVideo.videoUrl)}?rel=0&modestbranding=1`}
+                      title={activeVideo.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      referrerPolicy="strict-origin-when-cross-origin"
+                    ></iframe>
+                  )}
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <p className="text-white text-lg mb-2">No video available</p>
+                    <p className="text-richblack-300 text-sm">This lecture doesn't have a video yet</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Video Info */}
             <div className="p-6 flex-grow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-richblack-5">
-                  {activeVideo.title}
-                </h2>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-richblack-5 mb-2">
+                    {activeVideo.title}
+                  </h2>
+                  {/* Video duration badge */}
+                  {activeVideo.duration && (
+                    <div className="flex items-center text-sm text-richblack-300">
+                      <FiClock className="mr-1" />
+                      <span>{activeVideo.duration}</span>
+                    </div>
+                  )}
+                </div>
                 {!activeVideo.completed && (
                   <button
                     onClick={() => handleMarkAsCompleted(activeVideo._id)}
-                    className="px-4 py-2 bg-yellow-50 text-richblack-900 rounded-md font-medium hover:bg-yellow-100 transition-colors"
+                    className="px-4 py-2 bg-yellow-50 text-richblack-900 rounded-md font-medium hover:bg-yellow-100 transition-colors whitespace-nowrap ml-4"
                   >
                     Mark as Completed
                   </button>
                 )}
               </div>
               <p className="text-richblack-300 mb-6">
-                {activeVideo.description}
+                {activeVideo.description || 'No description available for this lecture.'}
               </p>
 
               <div className="border-t border-richblack-700 pt-6">
@@ -394,8 +444,24 @@ export default function ViewCourse() {
                 <p className="text-richblack-300 mb-4">
                   {courseData.courseDescription}
                 </p>
+                
+                {/* Course Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-richblack-900 bg-opacity-50 p-3 rounded-lg">
+                    <p className="text-richblack-300 text-sm mb-1">Total Sections</p>
+                    <p className="text-richblack-5 font-semibold">{courseData.sections.length}</p>
+                  </div>
+                  <div className="bg-richblack-900 bg-opacity-50 p-3 rounded-lg">
+                    <p className="text-richblack-300 text-sm mb-1">Total Lectures</p>
+                    <p className="text-richblack-5 font-semibold">
+                      {courseData.sections.reduce((total, section) => total + section.subSections.length, 0)}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Instructor Info */}
                 <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
+                  <div className="w-12 h-12 rounded-full overflow-hidden mr-3 border-2 border-yellow-50">
                     <img
                       src={courseData.instructor.image}
                       alt={`${courseData.instructor.firstName} ${courseData.instructor.lastName}`}

@@ -7,6 +7,7 @@ const {
     deleteCourse,
     getAllCourses,
     getCourseById,
+    getCourseDetails,
     getInstructorCourses,
     getCoursesByCategory,
     addLecture,
@@ -17,6 +18,7 @@ const {
 // Public routes
 router.get('/all', getAllCourses);
 router.get('/get/:courseId', getCourseById);
+router.get('/getCourseDetails', getCourseDetails);
 router.get('/category/:categoryId', getCoursesByCategory);
 
 // Instructor routes

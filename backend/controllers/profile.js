@@ -2,6 +2,8 @@ const Profile = require('../models/profile');
 const User = require('../models/user');
 const CourseProgress = require('../models/courseProgress')
 const Course = require('../models/course')
+const Section = require('../models/section')
+const SubSection = require('../models/subSection')
 
 const { uploadImageToCloudinary, deleteResourceFromCloudinary } = require('../utils/imageUploader');
 const { convertSecondsToDuration } = require('../utils/secToDuration')
@@ -202,65 +204,101 @@ exports.updateUserProfileImage = async (req, res) => {
 exports.getEnrolledCourses = async (req, res) => {
     try {
         const userId = req.user.id
-        let userDetails = await User.findOne({ _id: userId, })
+        let userDetails = await User.findOne({ _id: userId })
             .populate({
                 path: "courses",
-                populate: {
-                    path: "courseContent",
-                    populate: {
-                        path: "subSection",
+                populate: [
+                    {
+                        path: "courseContent",
+                        populate: {
+                            path: "subSection"
+                        }
                     },
-                },
+                    {
+                        path: "instructor",
+                        select: "firstName lastName email image"
+                    },
+                    {
+                        path: "category",
+                        select: "name description"
+                    }
+                ]
             })
             .exec()
 
+        if (!userDetails) {
+            return res.status(404).json({
+                success: false,
+                message: `Could not find user with id: ${userId}`,
+            })
+        }
+
         userDetails = userDetails.toObject()
 
-        var SubsectionLength = 0
-        for (var i = 0; i < userDetails.courses.length; i++) {
+        // Calculate progress for each enrolled course
+        for (let i = 0; i < userDetails.courses.length; i++) {
             let totalDurationInSeconds = 0
-            SubsectionLength = 0
-            for (var j = 0; j < userDetails.courses[i].courseContent.length; j++) {
-                totalDurationInSeconds += userDetails.courses[i].courseContent[
-                    j
-                ].subSection.reduce((acc, curr) => acc + parseInt(curr.timeDuration), 0)
-
-                userDetails.courses[i].totalDuration = convertSecondsToDuration(totalDurationInSeconds)
-                SubsectionLength += userDetails.courses[i].courseContent[j].subSection.length
+            let SubsectionLength = 0
+            
+            // Calculate total duration and count subsections
+            for (let j = 0; j < userDetails.courses[i].courseContent.length; j++) {
+                const subSections = userDetails.courses[i].courseContent[j].subSection || [];
+                
+                totalDurationInSeconds += subSections.reduce(
+                    (acc, curr) => acc + parseInt(curr.timeDuration || 0), 0
+                )
+                SubsectionLength += subSections.length
             }
 
+            userDetails.courses[i].totalDuration = convertSecondsToDuration(totalDurationInSeconds)
+            userDetails.courses[i].totalLessons = SubsectionLength
+
+            // Get user-specific course progress
             let courseProgressCount = await CourseProgress.findOne({
                 courseID: userDetails.courses[i]._id,
                 userId: userId,
             })
 
-            courseProgressCount = courseProgressCount?.completedVideos.length
+            const completedVideosLength = courseProgressCount?.completedVideos?.length || 0
 
             if (SubsectionLength === 0) {
-                userDetails.courses[i].progressPercentage = 100
+                userDetails.courses[i].progressPercentage = 0
+                userDetails.courses[i].progress = 0
             } else {
-                // To make it up to 2 decimal point
+                // Calculate progress percentage
                 const multiplier = Math.pow(10, 2)
                 userDetails.courses[i].progressPercentage =
-                    Math.round((courseProgressCount / SubsectionLength) * 100 * multiplier) / multiplier
+                    Math.round((completedVideosLength / SubsectionLength) * 100 * multiplier) / multiplier
+                userDetails.courses[i].progress = userDetails.courses[i].progressPercentage
             }
+            
+            // Add completed lessons count
+            userDetails.courses[i].completedLessons = completedVideosLength
+            userDetails.courses[i].lastAccessed = courseProgressCount?.lastAccessed || userDetails.courses[i].createdAt
         }
 
-        if (!userDetails) {
-            return res.status(400).json({
-                success: false,
-                message: `Could not find user with id: ${userDetails}`,
-            })
+        // Log first course to verify data structure
+        if (userDetails.courses.length > 0) {
+            console.log("Sample enrolled course data:", {
+                courseName: userDetails.courses[0].courseName,
+                thumbnail: userDetails.courses[0].thumbnail,
+                category: userDetails.courses[0].category,
+                instructor: userDetails.courses[0].instructor,
+                progress: userDetails.courses[0].progress
+            });
         }
 
         return res.status(200).json({
             success: true,
             data: userDetails.courses,
+            message: "Enrolled courses retrieved successfully"
         })
     } catch (error) {
+        console.error("Error in getEnrolledCourses:", error);
         return res.status(500).json({
             success: false,
-            message: error.message,
+            message: "Failed to retrieve enrolled courses",
+            error: error.message,
         })
     }
 }
@@ -305,6 +343,76 @@ exports.instructorDashboard = async (req, res) => {
 
 
 
+
+// ================ Unenroll From Course ================
+exports.unenrollFromCourse = async (req, res) => {
+    try {
+        const { courseId } = req.body;
+        const userId = req.user.id;
+
+        // Validate courseId
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Course ID is required'
+            });
+        }
+
+        // Check if course exists
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: 'Course not found'
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if user is enrolled in the course
+        if (!user.courses.includes(courseId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'You are not enrolled in this course'
+            });
+        }
+
+        // Remove course from user's enrolled courses
+        await User.findByIdAndUpdate(userId, {
+            $pull: { courses: courseId }
+        });
+
+        // Remove user from course's enrolled students
+        await Course.findByIdAndUpdate(courseId, {
+            $pull: { studentsEnrolled: userId }
+        });
+
+        // Delete course progress records
+        await CourseProgress.deleteMany({
+            courseID: courseId,
+            userId: userId
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully unenrolled from course'
+        });
+    } catch (error) {
+        console.error('Error in unenrollFromCourse:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to unenroll from course',
+            error: error.message
+        });
+    }
+};
 
 // ================ get All Students ================
 exports.getAllStudents = async (req, res) => {

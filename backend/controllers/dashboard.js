@@ -255,12 +255,20 @@ exports.enrollInCourse = async (req, res) => {
 // ================= GET COURSE DETAILS =================
 exports.getCourseDetails = async (req, res) => {
     try {
-        const { courseId } = req.params;
-        const userId = req.user.id;
+        const { courseId } = req.query || req.params;
+        const userId = req.user?.id;
 
         const course = await Course.findById(courseId)
             .populate('instructor', 'firstName lastName email image')
-            .populate('category', 'name');
+            .populate('category', 'name')
+            .populate({
+                path: 'courseContent',
+                populate: {
+                    path: 'subSection',
+                    select: 'title description videoUrl youtubeUrl timeDuration'
+                }
+            })
+            .exec();
 
         if (!course) {
             return res.status(404).json({
@@ -269,25 +277,28 @@ exports.getCourseDetails = async (req, res) => {
             });
         }
 
-        const user = await User.findById(userId);
-        const isEnrolled = user.courses.includes(courseId);
-
-        if (!isEnrolled && course.instructor._id.toString() !== userId) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not enrolled in this course"
-            });
-        }
-
+        // If user is authenticated, check enrollment and get progress
         let progress = null;
-        if (isEnrolled) {
-            progress = await CourseProgress.findOne({ courseId: courseId, userId: userId });
+        if (userId) {
+            const user = await User.findById(userId);
+            const isEnrolled = user.courses.includes(courseId);
+
+            if (!isEnrolled && course.instructor._id.toString() !== userId) {
+                return res.status(403).json({
+                    success: false,
+                    message: "You are not enrolled in this course"
+                });
+            }
+
+            if (isEnrolled) {
+                progress = await CourseProgress.findOne({ courseID: courseId, userId: userId });
+            }
         }
 
         return res.status(200).json({
             success: true,
             data: {
-                course,
+                ...course.toObject(),
                 progress: progress || { completedVideos: [] }
             },
             message: 'Course details retrieved successfully'

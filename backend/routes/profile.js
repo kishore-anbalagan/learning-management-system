@@ -9,6 +9,7 @@ const {
     updateUserProfileImage,
     getUserDetails,
     getEnrolledCourses,
+    unenrollFromCourse,
     deleteAccount,
     instructorDashboard
 } = require('../controllers/profile');
@@ -26,6 +27,9 @@ router.get('/getUserDetails', auth, getUserDetails);
 
 // Get Enrolled Courses
 router.get('/getEnrolledCourses', auth, getEnrolledCourses);
+
+// Unenroll from Course
+router.post('/unenrollFromCourse', auth, unenrollFromCourse);
 
 // update profile image
 router.put('/updateUserProfileImage', auth, updateUserProfileImage);

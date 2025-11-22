@@ -1,6 +1,9 @@
 const Course = require('../models/course');
 const User = require('../models/user');
 const Category = require('../models/category');
+const Section = require('../models/section');
+const SubSection = require('../models/subSection');
+const RatingAndReview = require('../models/ratingAndReview');
 const { uploadImageToCloudinary } = require('../utils/imageUploader');
 
 // Create a new course
@@ -230,8 +233,15 @@ exports.getCourseById = async (req, res) => {
         const { courseId } = req.params;
         
         const course = await Course.findById(courseId)
-            .populate('instructor', 'firstName lastName email')
+            .populate('instructor', 'firstName lastName email image')
             .populate('category', 'name')
+            .populate({
+                path: 'courseContent',
+                populate: {
+                    path: 'subSection',
+                    select: 'title description videoUrl youtubeUrl timeDuration'
+                }
+            })
             .populate('ratingAndReviews');
             
         if (!course) {
@@ -251,6 +261,60 @@ exports.getCourseById = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to fetch course",
+            error: error.message
+        });
+    }
+};
+
+// Get full course details with sections and subsections
+exports.getCourseDetails = async (req, res) => {
+    try {
+        const { courseId } = req.query;
+        
+        console.log('📚 getCourseDetails called with courseId:', courseId);
+        
+        if (!courseId) {
+            return res.status(400).json({
+                success: false,
+                message: "Course ID is required"
+            });
+        }
+        
+        const course = await Course.findById(courseId)
+            .populate('instructor', 'firstName lastName email image')
+            .populate('category', 'name description')
+            .populate({
+                path: 'courseContent',
+                populate: {
+                    path: 'subSection',
+                    select: 'title description videoUrl youtubeUrl timeDuration'
+                }
+            })
+            .populate('ratingAndReviews');
+        
+        console.log('📊 Course found:', {
+            name: course?.courseName,
+            sections: course?.courseContent?.length,
+            hasVideos: course?.courseContent?.[0]?.subSection?.length > 0
+        });
+            
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found"
+            });
+        }
+        
+        return res.status(200).json({
+            success: true,
+            data: course
+        });
+        
+    } catch (error) {
+        console.error("Error in getCourseDetails: ", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch course details",
             error: error.message
         });
     }

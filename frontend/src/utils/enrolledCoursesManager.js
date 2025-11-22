@@ -143,3 +143,17 @@ export const isEnrolledInCourse = (courseId, userId = null) => {
   const enrolledCourses = getEnrolledCourses(userIdToUse);
   return enrolledCourses.includes(courseId);
 };
+
+// Clear all enrolled courses for a specific user
+export const clearEnrolledCourses = (userId = null) => {
+  try {
+    const userIdToUse = userId || getCurrentUserId();
+    const storageKey = getUserEnrollmentKey(userIdToUse);
+    localStorage.removeItem(storageKey);
+    console.log(`Cleared enrolled courses from localStorage for user ${userIdToUse}`);
+    return true;
+  } catch (error) {
+    console.error('Error clearing enrolled courses:', error);
+    return false;
+  }
+};
